@@ -40,7 +40,7 @@ app.post('/api/order', async (req, res) => {
 📅 Дата: ${order.date}
 📦 Услуга: ${order.service}
 📝 Комментарий: ${order.comment || 'нет'}
-🕒 Получено: ${new Date(order.receivedAt).toLocaleString('ru-RU')}
+🕒 🕒 Получено: ${new Date(order.receivedAt).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })}
         `;
         const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`;
         const response = await fetch(url, {
