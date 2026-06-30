@@ -61,6 +61,15 @@
             color: green;
             display: none;
         }
+        .warning {
+            background: #fff3cd;
+            color: #856404;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 8px;
+            font-size: 14px;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -76,10 +85,13 @@
             <label for="storeName">Название магазина</label>
             <input type="text" id="storeName" placeholder="Мой магазин">
 
-            <label for="date">Дата</label>
+            <label for="date">Дата *</label>
             <input type="date" id="date" required>
+            <div id="warningMessage" class="warning">
+                ⚠️ Вы выбрали сегодняшнюю дату. Мы постараемся выполнить заказ максимально быстро, но рекомендуем оформлять заявки минимум за 24 часа.
+            </div>
 
-            <label for="service">Услуга</label>
+            <label for="service">Услуга *</label>
             <select id="service" required>
                 <option value="">Выберите услугу</option>
                 <option value="Забрать груз">Забрать груз</option>
@@ -101,6 +113,27 @@
     </div>
 
     <script>
+        // Запрещаем выбор даты в прошлом
+        const dateInput = document.getElementById('date');
+        const warningDiv = document.getElementById('warningMessage');
+        const today = new Date().toISOString().split('T')[0];
+        dateInput.setAttribute('min', today);
+
+        // При изменении даты показываем/скрываем предупреждение
+        dateInput.addEventListener('change', function() {
+            if (this.value === today) {
+                warningDiv.style.display = 'block';
+            } else {
+                warningDiv.style.display = 'none';
+            }
+        });
+
+        // При загрузке страницы проверяем, если дата уже выбрана
+        if (dateInput.value === today) {
+            warningDiv.style.display = 'block';
+        }
+
+        // Отправка формы
         document.getElementById('orderForm').addEventListener('submit', function(e) {
             e.preventDefault();
 
@@ -132,6 +165,8 @@
                     setTimeout(() => {
                         document.getElementById('status').style.display = 'none';
                         document.getElementById('orderForm').reset();
+                        // Скрываем предупреждение после сброса
+                        warningDiv.style.display = 'none';
                     }, 3000);
                 } else {
                     alert('Ошибка: ' + data.error);
