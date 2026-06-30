@@ -6,7 +6,7 @@ const PORT = process.env.PORT || 3000;
 
 // Telegram-данные (замени на свои)
 const TELEGRAM_TOKEN = '8980363625:AAHoX6cZDeQlv9QrubRrF-Ep91CyWk3_OLM'; // твой токен
-const CHAT_ID = 575833745; // сюда вставь свой chat_id (как число без кавычек)
+const CHAT_ID = 575833745; // сюда вставь свой chat_id (число без кавычек)
 
 app.use(cors());
 app.use(express.json());
@@ -17,30 +17,37 @@ app.get('/', (req, res) => {
 });
 
 app.post('/api/order', async (req, res) => {
-    const { date, service, comment } = req.body;
-    if (!date || !service) {
-        return res.status(400).json({ error: 'Дата и услуга обязательны' });
+    const { name, phone, storeName, date, service, address, comment } = req.body;
+
+    if (!name || !phone || !date || !service) {
+        return res.status(400).json({ error: 'Имя, телефон, дата и услуга обязательны' });
     }
 
     const order = {
+        name,
+        phone,
+        storeName: storeName || 'не указан',
         date,
         service,
-        comment: comment || '',
+        address: address || 'не указан',
+        comment: comment || 'нет',
         receivedAt: new Date().toISOString()
     };
 
-    // Сохраняем в память (временно)
-    // (массив orders мы пока не используем, но можно оставить)
     console.log('📩 Новая заявка:', order);
 
     // Отправляем уведомление в Telegram
     try {
         const message = `
 📩 *Новая заявка!*
+👤 Имя: ${order.name}
+📞 Телефон: ${order.phone}
+🏷️ Магазин: ${order.storeName}
 📅 Дата: ${order.date}
 📦 Услуга: ${order.service}
-📝 Комментарий: ${order.comment || 'нет'}
-🕒 🕒 Получено: ${new Date(order.receivedAt).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })}
+📍 Адрес: ${order.address}
+📝 Комментарий: ${order.comment}
+🕒 Получено: ${new Date(order.receivedAt).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })}
         `;
         const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`;
         const response = await fetch(url, {
