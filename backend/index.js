@@ -1,12 +1,15 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const { createClient } = require('@supabase/supabase-js');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Telegram-данные (замени на свои)
-const TELEGRAM_TOKEN = '8980363625:AAHoX6cZDeQlv9QrubRrF-Ep91CyWk3_OLM'; // твой токен
-const CHAT_ID = 575833745; // сюда вставь свой chat_id (число без кавычек)
+// 🔑 Конфигурация Supabase (ЗАМЕНИ НА СВОИ)
+const SUPABASE_URL = 'https://pcdcyxrsdifdqhnjtekm.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBjZGN5eHJzZGlmZHFobmp0ZWttIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MjgyNjkwNywiZXhwIjoyMDk4NDAyOTA3fQ.v9ShHf1Djfx5WZVqsgO7QfzXDe9WLaaWz92yy1M-S-s';
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 app.use(cors());
 app.use(express.json());
@@ -23,53 +26,40 @@ app.post('/api/order', async (req, res) => {
         return res.status(400).json({ error: 'Имя, телефон, дата и услуга обязательны' });
     }
 
-    const order = {
+    const orderData = {
         name,
         phone,
-        storeName: storeName || 'не указан',
+        store_name: storeName || null,
         date,
         service,
-        address: address || 'не указан',
-        comment: comment || 'нет',
-        receivedAt: new Date().toISOString()
+        address: address || null,
+        comment: comment || null,
+        status: 'новая'
     };
 
-    console.log('📩 Новая заявка:', order);
-
-    // Отправляем уведомление в Telegram
     try {
-        const message = `
-📩 *Новая заявка!*
-👤 Имя: ${order.name}
-📞 Телефон: ${order.phone}
-🏷️ Магазин: ${order.storeName}
-📅 Дата: ${order.date}
-📦 Услуга: ${order.service}
-📍 Адрес: ${order.address}
-📝 Комментарий: ${order.comment}
-🕒 Получено: ${new Date(order.receivedAt).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })}
-        `;
-        const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`;
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                chat_id: CHAT_ID,
-                text: message,
-                parse_mode: 'Markdown'
-            })
-        });
-        const result = await response.json();
-        if (result.ok) {
-            console.log('✅ Уведомление отправлено в Telegram');
-        } else {
-            console.error('❌ Ошибка отправки в Telegram:', result);
-        }
-    } catch (err) {
-        console.error('❌ Ошибка при отправке в Telegram:', err.message);
-    }
+        const { data, error } = await supabase
+            .from('orders')
+            .insert([orderData])
+            .select();
 
-    res.status(200).json({ success: true, message: 'Заявка принята' });
+        if (error) {
+            console.error('❌ Ошибка Supabase:', error);
+            return res.status(500).json({ error: 'Ошибка базы данных' });
+        }
+
+        const savedOrder = data[0];
+        console.log('✅ Заявка сохранена в Supabase:', savedOrder);
+
+        // Уведомление в Telegram временно отключено
+        // Если хочешь вернуть — раскомментируй блок ниже
+
+        res.status(200).json({ success: true, message: 'Заявка принята' });
+
+    } catch (err) {
+        console.error('❌ Критическая ошибка:', err);
+        res.status(500).json({ error: 'Внутренняя ошибка сервера' });
+    }
 });
 
 app.listen(PORT, () => {
